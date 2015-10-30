@@ -21,20 +21,28 @@
 			"deleteperm": true
 		}
 	},
+	"Actions": {
+		"delete_page_permanently": "ActionDeletePagePermanently",
+		"_merge_strategy": "array_plus"
+	},
 	"AvailableRights": [
 		"deleteperm"
 	],
 	"ExtensionFunctions": [
-		"DeletePagesForGoodHooks::onDeletesPagesPermanently"
+
 	],
 	"MessagesDirs": {
 		"DeletePagesForGood": [
 			"i18n"
 		]
 	},
+	"Hooks": {
+		"SkinTemplateNavigation::Universal": [
+			"ActionDeletePagePermanently::AddSkinHook"
+		]
+	},
 	"AutoloadClasses": {
-		"DeletePagesForGoodHooks": "DeletePagesForGood.hooks.php",
-		"DeletePagesForGood": "DeletePagesForGood.class.php"
+		"ActionDeletePagePermanently": "DeletePagesForGood.class.php"
 	},
 	"config": {
 		"DeletePagesForGoodNamespaces": {
@@ -53,7 +61,8 @@
 			"12": true,
 			"13": true,
 			"14": true,
-			"15": true
+			"15": true,
+			"_merge_strategy": "array_plus"
 		}
 	},
 	"manifest_version": 1
