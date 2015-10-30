@@ -21,6 +21,11 @@
 			"deleteperm": true
 		}
 	},
+	"Actions": {
+		"ask_delete_page_permanently": "DeletePagesForGood",
+		"delete_page_permanently": "DeletePagesForGood",
+		"_merge_strategy": "array_plus"
+	},
 	"AvailableRights": [
 		"deleteperm"
 	],
@@ -34,7 +39,9 @@
 	},
 	"AutoloadClasses": {
 		"DeletePagesForGoodHooks": "DeletePagesForGood.hooks.php",
-		"DeletePagesForGood": "DeletePagesForGood.class.php"
+		"DeletePagesForGood": "DeletePagesForGood.class.php",
+		"ActionAskDeletePagePermanently": "DeletePagesForGood.class.php",
+		"ActionDeletePagePermanently": "DeletePagesForGood.class.php"
 	},
 	"config": {
 		"DeletePagesForGoodNamespaces": {
