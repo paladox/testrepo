@@ -9,11 +9,6 @@ class DeletePagesForGood {
 			&$this,
 			'AddSkinHook'
 		);
-
-		$wgHooks['UnknownAction'][] = array(
-			&$this,
-			'AddActionHook'
-		);
 	}
 
 	function AddSkinHook( SkinTemplate &$sktemplate, array &$links ) {
@@ -37,53 +32,6 @@ class DeletePagesForGood {
 				'text' => wfMessage( 'deletepagesforgood-delete_permanently' )->text(),
 				'href' => $wgTitle->getLocalUrl( 'action=ask_delete_page_permanently' )
 			);
-		}
-
-		return true;
-	}
-
-	function AddActionHook( $action, $wgArticle ) {
-		global $wgOut, $wgUser, $wgDeletePagesForGoodNamespaces;
-
-		if ( !$wgUser->isAllowed( 'deleteperm' ) ) {
-			$wgOut->permissionRequired( 'deleteperm' );
-
-			return false;
-		}
-
-		# Print a form to approve deletion
-		if ( $action == 'ask_delete_page_permanently' ) {
-
-			$action = $wgArticle->getTitle()->getLocalUrl( 'action=delete_page_permanently' );
-			$wgOut->addHTML( "<form id='ask_delete_page_permanently' method='post' action=\"$action\">
-				<table>
-						<tr>
-							<td>" . wfMessage( 'deletepagesforgood-ask_deletion' )->text() . "</td>
-						</tr>
-						<tr>
-							<td><input type='submit' name='submit' value=\"" .
-								wfMessage( 'deletepagesforgood-yes' )->text() . "\" />
-							</td>
-						</tr>
-				</table></form>"
-			);
-			return false;
-		} elseif ( $action == 'delete_page_permanently' ) {
-			# Perform actual deletion
-			$ns = $wgArticle->mTitle->getNamespace();
-			$t = $wgArticle->mTitle->getDBkey();
-			$id = $wgArticle->mTitle->getArticleID();
-
-			if ( $t == '' || $id == 0 || $wgDeletePagesForGoodNamespaces[$ns] != true
-				|| $ns == NS_SPECIAL
-			) {
-				$wgOut->addHTML( wfMessage( 'deletepagesforgood-del_impossible' )->escaped() );
-				return false;
-			}
-
-			$this->deletePermanently( $wgArticle->mTitle );
-			$wgOut->addHTML( wfMessage( 'deletepagesforgood-del_done' )->escaped() );
-			return false;
 		}
 
 		return true;
@@ -247,5 +195,105 @@ class DeletePagesForGood {
 			$linkCache = LinkCache::singleton();
 			$linkCache->clear();
 		}
+	}
+}
+
+abstract class ActionAskDeletePagePermanently extends FormAction {
+
+	public function getName() {
+		return 'ask_delete_page_permanently';
+	}
+
+	public function requiresUnblock() {
+		return false;
+	}
+
+	public function getDescription() {
+		return '';
+	}
+
+	public function onSubmit( $data ) {
+		self::AddActionAskDeletePagePermanently( $this->getTitle(), $this->getUser() );
+
+		return true;
+	}
+
+	public static function AddActionAskDeletePagePermanently( $action, $wgArticle ) {
+		global $wgOut, $wgUser, $wgDeletePagesForGoodNamespaces;
+
+
+		# Print a form to approve deletion
+		if ( $action == 'ask_delete_page_permanently' ) {
+
+			$action = $wgArticle->getTitle()->getLocalUrl( 'action=delete_page_permanently' );
+			$wgOut->addHTML( "<form id='ask_delete_page_permanently' method='post' action=\"$action\">
+				<table>
+						<tr>
+							<td>" . wfMessage( 'deletepagesforgood-ask_deletion' )->text() . "</td>
+						</tr>
+						<tr>
+							<td><input type='submit' name='submit' value=\"" .
+								wfMessage( 'deletepagesforgood-yes' )->text() . "\" />
+							</td>
+						</tr>
+				</table></form>"
+			);
+			return false;
+		}
+
+		return true;
+	}
+
+	public function getRestriction() {
+		return 'deleteperm';
+		// global $wgOut, $wgUser;
+
+		// if ( !$wgUser->isAllowed( 'deleteperm' ) ) {
+			// $wgOut->permissionRequired( 'deleteperm' );
+
+			// return false;
+		// }
+	}
+
+
+	protected function checkCanExecute( User $user ) {
+		// Must be logged in
+		if ( $user->isAnon() ) {
+			throw new UserNotLoggedIn( 'deleteperm' );
+		}
+
+		parent::checkCanExecute( $user );
+	}
+}
+
+abstract class ActionDeletePagePermanently extends FormAction {
+	function AddActionDeletePagePermanently( $action, $wgArticle ) {
+		global $wgOut, $wgUser, $wgDeletePagesForGoodNamespaces;
+
+		if ( !$wgUser->isAllowed( 'deleteperm' ) ) {
+			$wgOut->permissionRequired( 'deleteperm' );
+
+			return false;
+		}
+
+		if ( $action == 'delete_page_permanently' ) {
+			# Perform actual deletion
+			$ns = $wgArticle->mTitle->getNamespace();
+			$t = $wgArticle->mTitle->getDBkey();
+			$id = $wgArticle->mTitle->getArticleID();
+
+			if ( $t == '' || $id == 0 || $wgDeletePagesForGoodNamespaces[$ns] != true
+				|| $ns == NS_SPECIAL
+			) {
+				$wgOut->addHTML( wfMessage( 'deletepagesforgood-del_impossible' )->escaped() );
+				return false;
+			}
+
+			$this->deletePermanently( $wgArticle->mTitle );
+			$wgOut->addHTML( wfMessage( 'deletepagesforgood-del_done' )->escaped() );
+			return false;
+		}
+
+		return true;
 	}
 }
