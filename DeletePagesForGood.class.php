@@ -1,22 +1,8 @@
 <?php
 
-class DeletePagesForGood {
+class ActionDeletePagePermanently extends FormAction {
 
-	function __construct() {
-		global $wgHooks;
-
-		$wgHooks['SkinTemplateNavigation::Universal'][] = array(
-			&$this,
-			'AddSkinHook'
-		);
-
-		$wgHooks['UnknownAction'][] = array(
-			&$this,
-			'AddActionHook'
-		);
-	}
-
-	function AddSkinHook( SkinTemplate &$sktemplate, array &$links ) {
+	public static function AddSkinHook( SkinTemplate &$sktemplate, array &$links ) {
 		global $wgRequest, $wgTitle, $wgUser, $wgDeletePagesForGoodNamespaces;
 
 		if ( !$wgUser->isAllowed( 'deleteperm' ) ) {
@@ -32,66 +18,37 @@ class DeletePagesForGood {
 			&& $wgDeletePagesForGoodNamespaces[$wgTitle->getNamespace()] == true
 			&& $wgTitle->getNamespace() != NS_SPECIAL
 		) {
-			$links['actions']['ask_delete_page_permanently'] = array(
-				'class' => ( $action == 'ask_delete_page_permanently' ) ? 'selected' : false,
+			$links['actions']['delete_page_permanently'] = array(
+				'class' => ( $action == 'delete_page_permanently' ) ? 'selected' : false,
 				'text' => wfMessage( 'deletepagesforgood-delete_permanently' )->text(),
-				'href' => $wgTitle->getLocalUrl( 'action=ask_delete_page_permanently' )
+				'href' => $wgTitle->getLocalUrl( 'action=delete_page_permanently' )
 			);
 		}
 
 		return true;
 	}
 
-	function AddActionHook( $action, $wgArticle ) {
-		global $wgOut, $wgUser, $wgDeletePagesForGoodNamespaces;
+	public function getName() {
+		return 'delete_page_permanently';
+	}
 
-		if ( !$wgUser->isAllowed( 'deleteperm' ) ) {
-			$wgOut->permissionRequired( 'deleteperm' );
+	public function getDescription() {
+		return '';
+	}
 
-			return false;
-		}
+	public function onSubmit( $data ) {
 
-		# Print a form to approve deletion
-		if ( $action == 'ask_delete_page_permanently' ) {
+		$this->checkCanExecute( $this->getUser() );
 
-			$action = $wgArticle->getTitle()->getLocalUrl( 'action=delete_page_permanently' );
-			$wgOut->addHTML( "<form id='ask_delete_page_permanently' method='post' action=\"$action\">
-				<table>
-						<tr>
-							<td>" . wfMessage( 'deletepagesforgood-ask_deletion' )->text() . "</td>
-						</tr>
-						<tr>
-							<td><input type='submit' name='submit' value=\"" .
-								wfMessage( 'deletepagesforgood-yes' )->text() . "\" />
-							</td>
-						</tr>
-				</table></form>"
-			);
-			return false;
-		} elseif ( $action == 'delete_page_permanently' ) {
-			# Perform actual deletion
-			$ns = $wgArticle->mTitle->getNamespace();
-			$t = $wgArticle->mTitle->getDBkey();
-			$id = $wgArticle->mTitle->getArticleID();
-
-			if ( $t == '' || $id == 0 || $wgDeletePagesForGoodNamespaces[$ns] != true
-				|| $ns == NS_SPECIAL
-			) {
-				$wgOut->addHTML( wfMessage( 'deletepagesforgood-del_impossible' )->escaped() );
-				return false;
-			}
-
-			$this->deletePermanently( $wgArticle->mTitle );
-			$wgOut->addHTML( wfMessage( 'deletepagesforgood-del_done' )->escaped() );
-			return false;
-		}
+		$this->deletePermanently( $title );
 
 		return true;
 	}
 
-	function deletePermanently( $title ) {
+	public function deletePermanently( $title ) {
 		global $wgOut;
 
+		$title = $this->getTitle();
 		$ns = $title->getNamespace();
 		$t = $title->getDBkey();
 		$id = $title->getArticleID();
@@ -247,5 +204,54 @@ class DeletePagesForGood {
 			$linkCache = LinkCache::singleton();
 			$linkCache->clear();
 		}
+	}
+
+	protected function alterForm( HTMLForm $form ) {
+
+		$title = $this->getTitle();
+		$output = $this->getOutput();
+
+		$this->checkCanExecute( $this->getUser() );
+
+		$output->addBacklinkSubtitle( $title );
+		$output->setPageTitle(
+			$this->msg( 'deletepagesforgood-deletepagetitle', $title->getPrefixedText() )
+		);
+		$output->setRobotPolicy( 'noindex,nofollow' );
+		$form->addPreText( "" . $this->msg( 'confirmdeletetext' )->parse() . "<br /> <br />" );
+
+		$form->addPreText(
+			"" . $this->msg( 'deletepagesforgood-ask_deletion' )->parse() . "<br /> <br />"
+		);
+
+		$form->setSubmitTextMsg( 'deletepagesforgood-yes' );
+	}
+
+	public function getRestriction() {
+		return 'deleteperm';
+	}
+
+	public function onSuccess() {
+		global $wgDeletePagesForGoodNamespaces;
+
+		$output = $this->getOutput();
+
+		$this->checkCanExecute( $this->getUser() );
+
+		$output->setRobotPolicy( 'noindex,nofollow' );
+
+		$title = $this->getTitle();
+		$ns = $title->getNamespace();
+		$t = $title->getDBkey();
+		$id = $title->getArticleID();
+
+		if ( $t === '' || $id === 0 || $wgDeletePagesForGoodNamespaces[$ns] !== true
+			|| $ns === NS_SPECIAL
+		) {
+			$output->addHTML( $this->msg( 'deletepagesforgood-del_impossible' )->escaped() );
+			return false;
+		}
+		$output->addHTML( $this->msg( 'deletepagesforgood-del_done' )->escaped() );
+		return false;
 	}
 }
