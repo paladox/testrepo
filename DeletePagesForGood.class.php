@@ -112,8 +112,10 @@ class DeletePagesForGood {
 		# delete language link...
 		$dbw->delete( 'langlinks', array( 'll_from' => $id ), __METHOD__ );
 
-		# delete search index...
-		$dbw->delete( 'searchindex', array( 'si_page' => $id ), __METHOD__ );
+		if ( !$GLOBALS['wgDBtype'] == "postgres" ) {
+			# delete search index...
+			$dbw->delete( 'searchindex', array( 'si_page' => $id ), __METHOD__ );
+		}
 
 		# Delete restrictions for the page
 		$dbw->delete( 'page_restrictions', array( 'pr_page' => $id ), __METHOD__ );
