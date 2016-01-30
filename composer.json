@@ -23,6 +23,11 @@
 	"replace": {
 		"mediawiki/deletepagesforgood-extension": "*"
 	},
+	"autoload": {
+		"files" : [
+			"DeletePagesForGood.php"
+		]
+	},
 	"require-dev": {
 		"jakub-onderka/php-parallel-lint": "0.9.2",
 		"mediawiki/mediawiki-codesniffer": "0.5.1"
